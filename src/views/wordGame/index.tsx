@@ -77,20 +77,24 @@ function WordGame() {
     return () => clearInterval(intervalId);
   }, [isTimerRunning]);
 
-  function handleUserKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
+  const handleUserKeyPress: React.ChangeEventHandler<HTMLInputElement> = (
+    e
+  ) => {
     //ensuring no inputs are accepted after result is shared with the user
     if (result) return;
 
     //starting the time if it isn't running already for first keystroke
     if (!isTimerRunning) setIsTimerRunning(true);
 
-    //disabling value of key to affect value of our input
-    e.preventDefault();
+    const userValue = e.target.value.toUpperCase();
 
-    if (randomLetter === e.key.toUpperCase()) {
-      setUserInputData(
-        userInputData ? `${userInputData + randomLetter}` : randomLetter
-      );
+    //replaced earlier implementation of keycode check as android browser doesn't support it
+    //checking if key pressed is an alphabet key only and checking again if any operations were performed by user on the previous value
+    if (
+      userValue.length === userInputData.length + 1 &&
+      randomLetter === userValue.at(-1)
+    ) {
+      setUserInputData(`${userValue}`);
 
       let newRandomLetter = generateRandomLetter();
 
@@ -117,7 +121,7 @@ function WordGame() {
     }
 
     return setTimeInMilliSeconds((prev) => prev + 500);
-  }
+  };
 
   function onReset() {
     setIsTimerRunning(false);
@@ -163,7 +167,7 @@ function WordGame() {
           type="text"
           value={userInputData}
           id="user-input"
-          onKeyDown={handleUserKeyPress}
+          onChange={handleUserKeyPress}
           //disabling cut, copy, paste functionality so user can't modify input field
           onCut={disableAction}
           onCopy={disableAction}
