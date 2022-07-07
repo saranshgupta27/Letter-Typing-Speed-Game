@@ -78,7 +78,10 @@ function WordGame() {
   }, [isTimerRunning]);
 
   function handleUserKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
-    //Starting the time if it isn't running already
+    //ensuring no inputs are accepted after result is shared with the user
+    if (result) return;
+
+    //starting the time if it isn't running already for first keystroke
     if (!isTimerRunning) setIsTimerRunning(true);
 
     //disabling value of key to affect value of our input
@@ -91,7 +94,7 @@ function WordGame() {
 
       let newRandomLetter = generateRandomLetter();
 
-      //this will ensure our new letter will never be the same as previous letter
+      //check to ensure the new random letter will never be the same as previous random letter
       while (newRandomLetter === randomLetter) {
         newRandomLetter = generateRandomLetter();
         if (newRandomLetter !== randomLetter) {
@@ -103,7 +106,7 @@ function WordGame() {
 
       if (userInputData?.length === 19) {
         setIsTimerRunning(false);
-        if (timeInMilliSeconds < highScore) {
+        if (highScore ? timeInMilliSeconds < highScore : true) {
           localStorage.setItem("highScore", `${timeInMilliSeconds}`);
           setHighScore(timeInMilliSeconds);
           return setResult(resultValues.success);
