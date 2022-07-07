@@ -1,6 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { createUseStyles } from "react-jss";
 import clsx from "clsx";
+import {
+  disableAction,
+  generateRandomLetter,
+  getTime as getFormattedTime,
+} from "../../utils/helpers";
+import { resultValues } from "../../utils/constants";
 
 const useStyles = createUseStyles((theme) => ({
   container: {
@@ -11,7 +17,10 @@ const useStyles = createUseStyles((theme) => ({
     textAlign: "center",
     lineHeight: "25px",
   },
-
+  time: {
+    width: "20px",
+    overflow: "clip",
+  },
   letterContainer: {
     color: "var(--green)",
     background: "white",
@@ -39,10 +48,81 @@ const useStyles = createUseStyles((theme) => ({
     },
   },
   resetButton: { background: "var(--pink)", width: "150px", height: "inherit" },
+  timeContainer: { width: "120px", textAlign: "left" },
+  failure: { color: "red" },
 }));
 
 function WordGame() {
   const classes = useStyles();
+  const [randomLetter, setRandomLetter] = useState(generateRandomLetter);
+  const [userInputData, setUserInputData] = useState<string>("");
+  const [timeInMilliSeconds, setTimeInMilliSeconds] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [highScore, setHighScore] = useState(
+    parseInt(localStorage.getItem("highScore") || "0")
+  );
+  const [result, setResult] = useState<null | resultValues>(null);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined = undefined;
+
+    if (isTimerRunning) {
+      intervalId = setInterval(() => {
+        setTimeInMilliSeconds((prev) => prev + 10);
+      }, 10);
+    } else {
+      clearInterval(intervalId);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [isTimerRunning]);
+
+  function handleUserKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
+    //Starting the time if it isn't running already
+    if (!isTimerRunning) setIsTimerRunning(true);
+
+    //disabling value of key to affect value of our input
+    e.preventDefault();
+
+    if (randomLetter === e.key.toUpperCase()) {
+      setUserInputData(
+        userInputData ? `${userInputData + randomLetter}` : randomLetter
+      );
+
+      let newRandomLetter = generateRandomLetter();
+
+      //this will ensure our new letter will never be the same as previous letter
+      while (newRandomLetter === randomLetter) {
+        newRandomLetter = generateRandomLetter();
+        if (newRandomLetter !== randomLetter) {
+          break;
+        }
+      }
+
+      setRandomLetter(newRandomLetter);
+
+      if (userInputData?.length === 19) {
+        setIsTimerRunning(false);
+        if (timeInMilliSeconds < highScore) {
+          localStorage.setItem("highScore", `${timeInMilliSeconds}`);
+          setHighScore(timeInMilliSeconds);
+          return setResult(resultValues.success);
+        }
+        setResult(resultValues.failure);
+      }
+      return;
+    }
+
+    return setTimeInMilliSeconds((prev) => prev + 500);
+  }
+
+  function onReset() {
+    setIsTimerRunning(false);
+    setUserInputData("");
+    setResult(null);
+    setTimeInMilliSeconds(0);
+    setRandomLetter(generateRandomLetter);
+  }
 
   return (
     <div className={clsx(classes.container)}>
@@ -55,14 +135,19 @@ function WordGame() {
         <div
           className={clsx(
             classes.letterContainer,
+            { [classes.failure]: result === resultValues.failure },
             "mt-4 flex items-center justify-center"
           )}
         >
-          <p className="text-7xl font-extrabold">A</p>
+          <p className="text-7xl font-extrabold">{result || randomLetter}</p>
         </div>
-        <p className="text-1xl font-normal mt-6">Time: 0.000s</p>
+        <div className={clsx(classes.timeContainer, "flex items-center gap-1")}>
+          <p className="text-1xl font-normal mt-6">
+            Time: {getFormattedTime(timeInMilliSeconds)}
+          </p>
+        </div>
         <p className={"text-1xl font-light mt-1 opacity-80"}>
-          my best time: 1:39s!
+          my best time: {getFormattedTime(highScore)}!
         </p>
       </div>
       <div
@@ -73,11 +158,19 @@ function WordGame() {
       >
         <input
           type="text"
+          value={userInputData}
           id="user-input"
+          onKeyDown={handleUserKeyPress}
+          //disabling cut, copy, paste functionality so user can't modify input field
+          onCut={disableAction}
+          onCopy={disableAction}
+          onPaste={disableAction}
           placeholder="Type Here"
           className={clsx("p-1", classes.input)}
         />
-        <button className={classes.resetButton}>Reset</button>
+        <button className={classes.resetButton} onClick={onReset}>
+          Reset
+        </button>
       </div>
     </div>
   );
