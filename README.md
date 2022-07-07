@@ -1,6 +1,6 @@
 # Letter Typing Speed Game
  
-This site is hosted at:
+This site is hosted at: https://typinglettergame.netlify.app/
 
 # Starting the project
 
